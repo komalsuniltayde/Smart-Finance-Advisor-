@@ -729,41 +729,12 @@ export default function Dashboard() {
                     ))}
                   </Pie>
                   <Tooltip
-                    content={({ active, payload }) => {
-                      if (!active || !payload?.length) return null;
-                      const d = payload[0];
-                      return (
-                        <div
-                          style={{
-                            background: "rgba(11,17,30,0.95)",
-                            border: `1px solid ${d.payload.fill || "#333"}`,
-                            borderRadius: 10,
-                            padding: "10px 16px",
-                            boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-                          }}
-                        >
-                          <p
-                            style={{
-                              color: d.payload.fill || "#fff",
-                              fontSize: 13,
-                              fontWeight: 700,
-                              marginBottom: 2,
-                            }}
-                          >
-                            {d.name}
-                          </p>
-                          <p
-                            style={{
-                              color: "#ffffff",
-                              fontSize: 14,
-                              fontFamily: "var(--font-mono)",
-                              fontWeight: 600,
-                            }}
-                          >
-                            {d.value}%
-                          </p>
-                        </div>
-                      );
+                    formatter={(v, n) => [`${v}%`, n]}
+                    contentStyle={{
+                      background: "var(--bg-elevated)",
+                      border: "1px solid var(--border-light)",
+                      borderRadius: 8,
+                      fontSize: 12,
                     }}
                   />
                 </PieChart>
@@ -783,31 +754,29 @@ export default function Dashboard() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      fontSize: 13,
-                      padding: "3px 0",
+                      fontSize: 12,
                     }}
                   >
                     <div
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
+                      style={{ display: "flex", alignItems: "center", gap: 7 }}
                     >
                       <div
                         style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: 3,
+                          width: 8,
+                          height: 8,
+                          borderRadius: 2,
                           background: COLORS[i % COLORS.length],
-                          boxShadow: `0 0 6px ${COLORS[i % COLORS.length]}55`,
                         }}
                       />
-                      <span style={{ color: "#e6ecf5", fontWeight: 500 }}>
+                      <span style={{ color: "var(--text-secondary)" }}>
                         {e.name}
                       </span>
                     </div>
                     <span
                       style={{
                         fontFamily: "var(--font-mono)",
-                        color: COLORS[i % COLORS.length],
-                        fontWeight: 600,
+                        color: "var(--text-primary)",
+                        fontWeight: 500,
                       }}
                     >
                       {e.value}%

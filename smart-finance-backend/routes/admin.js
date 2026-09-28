@@ -1,12 +1,9 @@
 import express from "express";
 import User from "../models/User.js";
 import Transaction from "../models/Transaction.js";
-import Budget from "../models/Budget.js";
-import BudgetAlert from "../models/BudgetAlert.js";
 import Advisory from "../models/Advisory.js";
 import authMiddleware from "../middleware/auth.js";
 import adminMiddleware from "../middleware/admin.js";
-import { sendOverlimitEmail } from "../services/emailService.js";
 
 const router = express.Router();
 
@@ -257,119 +254,6 @@ router.get("/platform-categories", async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// ── BUDGET ALERTS MANAGEMENT ─────────────────────────────────────────
-
-// GET all budget alerts (with user info populated)
-router.get("/budget-alerts", async (req, res) => {
-  try {
-    const alerts = await BudgetAlert.find()
-      .populate("user", "name email")
-      .sort({ createdAt: -1 });
-    res.json(alerts);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// GET live overlimit status for all users (real-time check)
-router.get("/overlimit-users", async (req, res) => {
-  try {
-    const now = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-    const users = await User.find({ role: { $ne: "admin" } }).select("-password");
-    const results = [];
-
-    for (const user of users) {
-      const budgets = await Budget.find({ user: user._id, month });
-      if (budgets.length === 0) continue;
-
-      const txns = await Transaction.find({
-        user: user._id,
-        type: "expense",
-        date: { $gte: start, $lte: end },
-      });
-
-      const spendingMap = {};
-      txns.forEach((t) => {
-        spendingMap[t.category] = (spendingMap[t.category] || 0) + t.amount;
-      });
-
-      const overCategories = [];
-      for (const b of budgets) {
-        const actual = spendingMap[b.category] || 0;
-        if (actual > b.limit) {
-          overCategories.push({
-            category: b.category,
-            budgetLimit: b.limit,
-            amountSpent: actual,
-            overBy: actual - b.limit,
-          });
-        }
-      }
-
-      if (overCategories.length > 0) {
-        results.push({
-          userId: user._id,
-          userName: user.name,
-          userEmail: user.email,
-          overCategories,
-        });
-      }
-    }
-
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// POST send manual budget alert email from admin to a specific user
-router.post("/send-alert-email", async (req, res) => {
-  try {
-    const { userId, category, budgetLimit, amountSpent } = req.body;
-
-    if (!userId || !category) {
-      return res.status(400).json({ message: "userId and category are required" });
-    }
-
-    const user = await User.findById(userId);
-    if (!user || !user.email) {
-      return res.status(404).json({ message: "User not found or no email" });
-    }
-
-    const limit = budgetLimit || 0;
-    const spent = amountSpent || 0;
-
-    await sendOverlimitEmail(user, category, limit, spent);
-
-    // Save alert record to DB
-    const now = new Date();
-    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    
-    await BudgetAlert.create({
-      user: user._id,
-      category,
-      budgetLimit: limit,
-      amountSpent: spent,
-      overBy: Math.max(spent - limit, 0),
-      emailSentToUser: true,
-      emailSentToAdmin: false,
-      adminEmailSent: true,
-      adminEmailSentAt: new Date(),
-      month,
-    });
-
-    console.log(`📧 Admin manually sent budget alert to ${user.name} (${user.email}) for ${category}`);
-    res.json({ success: true, message: `Budget alert email sent to ${user.name} (${user.email})` });
-  } catch (err) {
-    console.error("Admin send alert error:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
