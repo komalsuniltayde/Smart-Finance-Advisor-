@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci --prefix smart-finance-advisory && npm ci --prefix smart-finance-backend",
+  "buildCommand": "npm run build --prefix smart-finance-advisory",
+  "outputDirectory": "smart-finance-advisory/dist",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/index" },
+    { "source": "/((?!api(?:/|$)).*)", "destination": "/index.html" }
+  ]
+}

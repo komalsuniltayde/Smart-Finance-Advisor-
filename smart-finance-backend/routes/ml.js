@@ -5,10 +5,11 @@ import authMiddleware from "../middleware/auth.js";
 const router = express.Router();
 router.use(authMiddleware);
 
-const FLASK_URL = "http://localhost:8000";
+const FLASK_URL = process.env.FLASK_URL || (process.env.VERCEL ? "" : "http://localhost:8000");
 
 // Helper function to send request to Python Flask service
 const callFlaskService = async (endpoint, payload) => {
+  if (!FLASK_URL) throw new Error("FLASK_URL must point to the hosted Python service");
   const response = await fetch(`${FLASK_URL}${endpoint}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

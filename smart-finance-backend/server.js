@@ -10,15 +10,30 @@ import mlRoutes from "./routes/ml.js";
 import aiRoutes from "./routes/ai.js";
 import adminRoutes from "./routes/admin.js";
 import advisoryRoutes from "./routes/advisories.js";
-import "./services/cronJobs.js";
 
 dotenv.config();
-connectDB();
 
 const app = express();
 
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(express.json());
+
+app.get("/api/health", (req, res) => {
+  res.json({ status: "Backend running", databaseConfigured: Boolean(process.env.MONGODB_URI) });
+});
+
+app.use("/api", async (req, res, next) => {
+  if (!process.env.JWT_SECRET) {
+    return res.status(503).json({ message: "Server setup incomplete: JWT_SECRET is not configured." });
+  }
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error("Database connection failed:", error.name);
+    res.status(503).json({ message: "Database unavailable. Configure an accessible MONGODB_URI on the hosting service." });
+  }
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -30,16 +45,16 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/advisories", advisoryRoutes);
 
-// Health check
-app.get("/api/health", (req, res) => {
-  res.json({ status: "✅ Backend running!" });
-});
-
 app.get("/", (req, res) => {
   res.send("🚀 FinanceAI Backend API is running! Access the web app at http://localhost:3000");
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  await import("./services/cronJobs.js");
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
