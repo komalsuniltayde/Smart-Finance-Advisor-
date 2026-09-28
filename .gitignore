@@ -31,3 +31,4 @@ build/
 
 # Archives
 *.zip
+!.env.example

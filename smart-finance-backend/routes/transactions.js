@@ -2,7 +2,6 @@ import express from "express";
 import Transaction from "../models/Transaction.js";
 import Budget from "../models/Budget.js";
 import User from "../models/User.js";
-import BudgetAlert from "../models/BudgetAlert.js";
 import authMiddleware from "../middleware/auth.js";
 import { sendOverlimitEmail, sendAdminOverlimitNotification } from "../services/emailService.js";
 
@@ -66,21 +65,7 @@ router.post("/", async (req, res) => {
             if (prevSpent <= budget.limit && totalSpent > budget.limit) {
               const user = await User.findById(req.user.id);
               if (user && user.email) {
-                const overBy = totalSpent - budget.limit;
                 console.log(`⚠️ Budget Breached: ${user.name} exceeded limit for ${category} (Spent: ${totalSpent}, Limit: ${budget.limit})`);
-                
-                // Save alert to database
-                await BudgetAlert.create({
-                  user: user._id,
-                  category,
-                  budgetLimit: budget.limit,
-                  amountSpent: totalSpent,
-                  overBy,
-                  emailSentToUser: true,
-                  emailSentToAdmin: true,
-                  month,
-                });
-
                 await sendOverlimitEmail(user, category, budget.limit, totalSpent);
                 await sendAdminOverlimitNotification(user, category, budget.limit, totalSpent);
               }
